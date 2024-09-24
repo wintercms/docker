@@ -32,29 +32,12 @@ if ($env->get('INSTALL_WINTER')) {
     }
 }
 
-// Get nobody user
-$env->out('bootstrap', 'Get nobody user');
-$user = posix_getpwnam('nobody');
-if (!$user) {
-    exec('useradd nobody');
-    exec('groupadd nobody');
-    $user = posix_getpwnam('nobody');
+// Create or touch SQLite database if it's being used
+if ($env->get('DB_CONNECTION') === 'sqlite') {
+    $env->out('bootstrap', 'Touching SQLite database file');
+    Process::exec('touch ' . $env->get('DB_DATABASE'))->discard();
 }
 
-// Change permissions
-$env->out('bootstrap', 'Change permissions of necessary directories');
-exec('chown -R nobody:nobody /winter /bootstrap /run /var/lib/nginx /var/log/nginx');
-
-// Change to nobody user
-$env->out('bootstrap', 'Change to nobody user');
-posix_setuid($user['uid']);
-posix_setgid($user['gid']);
-
-// Remove bootstrap
-$env->out('bootstrap', 'Remove bootstrap');
-exec('rm -rf /bootstrap/*');
-
-// Run web server
-$env->out('bootstrap', 'Run web server');
-pclose(popen('/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf >/dev/stdout 2>&1 &', 'r'));
-
+// Run migrations
+$env->out('bootstrap', 'Running migrations');
+Process::exec('php artisan migrate')->discard();

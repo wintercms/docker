@@ -48,13 +48,24 @@ COPY config/php-fpm/pool.conf /usr/local/etc/php-fpm.d/www.conf
 COPY config/supervisor/supervisor.conf /etc/supervisor/conf.d/supervisord.conf
 RUN rm -f /usr/local/etc/php-fpm.d/zz-docker.conf
 
-# Create bootstrap directory
+# Create bootstrap directory and file
 COPY bootstrap /bootstrap
+COPY bootstrap.sh /bootstrap.sh
+
+# Set the working directory
+RUN mkdir -p /winter
+WORKDIR /winter
+
+# Make sure files/folders needed by the processes are accessable when they run under the nobody user
+RUN chown -R nobody:nobody /winter /bootstrap /run /var/lib/nginx /var/log/nginx
+
+# Switch to use a non-root user from here on
+USER nobody
 
 # Expose the port Nginx is reachable on
 EXPOSE 8080
 
-CMD ["php", "/bootstrap/bootstrap.php"]
+CMD ["/bootstrap.sh"]
 
 # Configure a healthcheck to validate that everything is up&running
 HEALTHCHECK --timeout=10s CMD curl --silent --fail http://127.0.0.1:8080/fpm-ping || exit 1

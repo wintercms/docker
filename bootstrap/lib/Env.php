@@ -25,6 +25,8 @@ class Env
         'WINTER_PR_URL' => null,
         'STORM_PR_URL' => null,
         'INCLUDE_DEV_DEPENDENCIES' => false,
+        'DB_CONNECTION' => 'sqlite',
+        'DB_DATABASE' => 'storage/database.sqlite',
     ];
 
     /**
