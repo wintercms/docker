@@ -3,7 +3,7 @@ ARG PHP_VERSION="8.4"
 ARG WINTER_VERSION="v1.2.8"
 
 FROM dunglas/frankenphp:${FRANKENPHP_VERSION}-php${PHP_VERSION}-trixie
-LABEL org.opencontainers.image.title="Winter CMS Docker Image - PHP 8.4 with FrankenPHP"
+LABEL org.opencontainers.image.title="Winter CMS"
 LABEL org.opencontainers.image.description="Builds and deploys a Winter CMS project using Docker."
 LABEL org.opencontainers.image.source=https://github.com/wintercms/docker
 
