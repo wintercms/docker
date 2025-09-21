@@ -22,6 +22,12 @@ docker run --name winter -p 8000:8000 ghcr.io/wintercms/winter:latest
 
 You can then access your Winter installation by navigating to **localhost:8000** in your web browser.
 
+You can view the Docker logs during initialisation for the automatically generated password for the `admin` account, or you may provide an admin password by specifying the `ADMIN_PASSWORD` environment variable.
+
+```bash
+docker run --name winter -p 8000:8000 --env "ADMIN_PASSWORD=myadminpassword" ghcr.io/wintercms/winter:latest
+```
+
 ### Persisting data
 
 If you would like to persist the Winter installation, you have two options:
