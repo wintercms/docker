@@ -1,71 +1,71 @@
-# Based off Dockerfile from TrafeX/docker-php-nginx (https://github.com/TrafeX/docker-php-nginx).
-# Credit to TrafeX for the original implementation.
-
-FROM php:8.3.11-fpm-alpine3.20
-LABEL org.opencontainers.image.title="Winter CMS Docker Image - PHP 8.3.11 / Alpine 3.20"
+FROM dunglas/frankenphp:1.9-php8.4-trixie
+LABEL org.opencontainers.image.title="Winter CMS Docker Image - PHP 8.4 with FrankenPHP"
 LABEL org.opencontainers.image.description="Builds and deploys a Winter CMS project using Docker."
 LABEL org.opencontainers.image.source=https://github.com/wintercms/docker
 
-# Install PHP extension script
-ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+ARG USER=winter
+ARG WINTER_TAG=v1.2.8
 
-# Install PHP extensions
-RUN chmod +x /usr/local/bin/install-php-extensions && \
-    install-php-extensions \
+RUN \
+    # Install Microsoft packages key for SQL Server support
+    curl -sSL -o /tmp/packages-microsoft-prod.deb https://packages.microsoft.com/config/debian/13/packages-microsoft-prod.deb \
+    && dpkg -i /tmp/packages-microsoft-prod.deb \
+    && rm /tmp/packages-microsoft-prod.deb \
+    && mkdir -p /opt/microsoft/msodbcsql18/ \
+    && touch /opt/microsoft/msodbcsql18/ACCEPT_EULA \
+    && apt update \
+    # Install PHP extensions
+    && install-php-extensions \
         gd \
-        gettext \
-        imap \
         intl \
         memcached \
-        opcache \
         pdo_mysql \
         pdo_pgsql \
         pdo_sqlsrv \
         pdo_odbc \
         redis \
-        zip
-
-# Install other software
-RUN apk add --no-cache \
-    curl \
-    git \
-    nginx \
-    supervisor \
-    tar \
-    unzip \
-    zip
-
+        zip \
+    # Install additional software for Composer
+    && apt update \
+    && apt install -y \
+        git \
+        unzip \
+        tar \
+        wget \
+    # Clean up
+    && apt clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
-# Add configuration
-COPY config/nginx/nginx.conf /etc/nginx/nginx.conf
-COPY config/nginx/default.conf /etc/nginx/conf.d/default.conf
-COPY config/php-fpm/php.ini /usr/local/etc/php/conf.d/docker-fpm.ini
-COPY config/php-fpm/docker.conf /usr/local/etc/php-fpm.d/docker.conf
-COPY config/php-fpm/pool.conf /usr/local/etc/php-fpm.d/www.conf
-COPY config/supervisor/supervisor.conf /etc/supervisor/conf.d/supervisord.conf
-RUN rm -f /usr/local/etc/php-fpm.d/zz-docker.conf
+# Setup Winter user and download Winter
+RUN \
+    groupadd -g 10000 -r ${USER} \
+    && useradd -m -d /home/winter -u 10000 -g 10000 -s /bin/bash ${USER} \
+    # Add additional capability to bind to port 80 and 443
+    && setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp \
+    # Give write access to /config/caddy and /data/caddy
+    && chown -R ${USER}:${USER} /config/caddy /data/caddy \
+    && mkdir /winter \
+    && cd /winter \
+    && composer create-project --no-progress --no-interaction wintercms/winter /winter "${WINTER_TAG}" \
+    && chown -R ${USER}:${USER} /winter
 
-# Create bootstrap directory and file
-COPY bootstrap /bootstrap
-COPY bootstrap.sh /bootstrap.sh
-
-# Set the working directory
-RUN mkdir -p /winter
 WORKDIR /winter
+USER winter
 
-# Make sure files/folders needed by the processes are accessable when they run under the nobody user
-RUN chown -R nobody:nobody /winter /bootstrap /run /var/lib/nginx /var/log/nginx
+ENV SERVER_NAME=":8000"
+ENV SERVER_ROOT="/winter/public"
+ENV APP_DEBUG="false"
+ENV APP_URL="http://localhost:8000"
+ENV ACTIVE_THEME="demo"
+ENV BACKEND_URI="backend"
+ENV ROUTES_CACHE="true"
+ENV ASSET_CACHE="true"
 
-# Switch to use a non-root user from here on
-USER nobody
+COPY entrypoint.sh /entrypoint.sh
+COPY config/php.ini /usr/local/etc/php/conf.d/winter.ini
 
-# Expose the port Nginx is reachable on
-EXPOSE 8080
-
-CMD ["/bootstrap.sh"]
-
-# Configure a healthcheck to validate that everything is up&running
-HEALTHCHECK --timeout=10s CMD curl --silent --fail http://127.0.0.1:8080/fpm-ping || exit 1
+CMD ["--config", "/etc/frankenphp/Caddyfile", "--adapter", "caddyfile"]
+ENTRYPOINT ["/entrypoint.sh"]
