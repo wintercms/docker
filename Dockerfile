@@ -1,10 +1,13 @@
-FROM dunglas/frankenphp:1.9-php8.4-trixie
+ARG FRANKENPHP_VERSION="1.9"
+ARG PHP_VERSION="8.4"
+ARG WINTER_VERSION="v1.2.8"
+
+FROM dunglas/frankenphp:${FRANKENPHP_VERSION}-php${PHP_VERSION}-trixie
 LABEL org.opencontainers.image.title="Winter CMS Docker Image - PHP 8.4 with FrankenPHP"
 LABEL org.opencontainers.image.description="Builds and deploys a Winter CMS project using Docker."
 LABEL org.opencontainers.image.source=https://github.com/wintercms/docker
 
-ARG USER=winter
-ARG WINTER_TAG=v1.2.8
+ARG USER="winter"
 
 RUN \
     # Install Microsoft packages key for SQL Server support
@@ -48,24 +51,44 @@ RUN \
     # Give write access to /config/caddy and /data/caddy
     && chown -R ${USER}:${USER} /config/caddy /data/caddy \
     && mkdir /winter \
-    && cd /winter \
-    && composer create-project --no-progress --no-interaction wintercms/winter /winter "${WINTER_TAG}" \
     && chown -R ${USER}:${USER} /winter
 
+COPY entrypoint.sh /entrypoint.sh
+COPY config/php.ini /usr/local/etc/php/conf.d/winter.ini
+
+# Switch to user
+USER ${USER}
+RUN composer create-project --no-progress --no-interaction --no-scripts wintercms/winter /winter ${WINTER_VERSION}
+
+# Install Node for Mix/Vite support
+ARG NODE_VERSION="v24.8.0"
+ENV BASH_ENV=/home/${USER}/.bash_env
+ENV XDG_CONFIG_HOME=/home/${USER}/.config
+ENV NVM_DIR=/home/${USER}/.config/nvm
+ENV NODE_BIN_PATH=${NVM_DIR}/versions/node/${NODE_VERSION}/bin
+
+RUN touch "${BASH_ENV}" \
+    && echo '. "${BASH_ENV}"' >> ~/.bashrc \
+    && mkdir -p /home/${USER}/.config/nvm \
+    && wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | PROFILE="${BASH_ENV}" bash \
+    && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" \
+    && nvm install "${NODE_VERSION}"
+
+ENV PATH="${NODE_BIN_PATH}:$PATH"
+
+# Set up environment
 WORKDIR /winter
-USER winter
 
 ENV SERVER_NAME=":8000"
 ENV SERVER_ROOT="/winter/public"
 ENV APP_DEBUG="false"
 ENV APP_URL="http://localhost:8000"
+ENV DB_CONNECTION="sqlite"
+ENV DB_DATABASE="/winter/storage/database.sqlite"
 ENV ACTIVE_THEME="demo"
 ENV BACKEND_URI="backend"
 ENV ROUTES_CACHE="true"
 ENV ASSET_CACHE="true"
-
-COPY entrypoint.sh /entrypoint.sh
-COPY config/php.ini /usr/local/etc/php/conf.d/winter.ini
 
 CMD ["--config", "/etc/frankenphp/Caddyfile", "--adapter", "caddyfile"]
 ENTRYPOINT ["/entrypoint.sh"]

@@ -16,6 +16,40 @@ env_var_or_file() {
     echo $VAL
 }
 
+# If storage directory is mounted but empty, add default directory structure
+if [ -d /winter/storage ] && [ -z "$(ls -A /winter/storage)" ]; then
+    echo "Storage directory is empty, creating default structure..."
+    GITIGNORE=$'*\n!.gitignore'
+    mkdir -p /winter/storage/app/media
+    echo "$GITIGNORE" > /winter/storage/app/media/.gitignore
+    mkdir -p /winter/storage/app/resized
+    echo "$GITIGNORE" > /winter/storage/app/resized/.gitignore
+    mkdir -p /winter/storage/app/uploads/public
+    echo "$GITIGNORE" > /winter/storage/app/uploads/public/.gitignore
+    echo $'*\n!.gitignore\n!public' > /winter/storage/app/uploads/.gitignore
+    echo $'*\n!.gitignore\n!media\n!resized\n!uploads' > /winter/storage/app/.gitignore
+    mkdir -p /winter/storage/cms/cache
+    echo "$GITIGNORE" > /winter/storage/cms/cache/.gitignore
+    mkdir -p /winter/storage/cms/combiner
+    echo "$GITIGNORE" > /winter/storage/cms/combiner/.gitignore
+    mkdir -p /winter/storage/cms/twig
+    echo "$GITIGNORE" > /winter/storage/cms/twig/.gitignore
+    echo "disabled.json" > /winter/storage/cms/.gitignore
+    mkdir -p /winter/storage/framework/cache
+    echo "$GITIGNORE" > /winter/storage/framework/cache/.gitignore
+    mkdir -p /winter/storage/framework/sessions
+    echo "$GITIGNORE" > /winter/storage/framework/sessions/.gitignore
+    mkdir -p /winter/storage/framework/views
+    echo "$GITIGNORE" > /winter/storage/framework/views/.gitignore
+    echo $'config.php\nroutes.php\ncompiled.php\nservices.php\nclasses.php\npackages.php\nevents.scanned.php\nroutes.scanned.php' > /winter/storage/framework/.gitignore
+    mkdir -p /winter/storage/logs
+    echo "$GITIGNORE" > /winter/storage/logs/.gitignore
+    mkdir -p /winter/storage/temp/public
+    echo "$GITIGNORE" > /winter/storage/temp/public/.gitignore
+    echo $'*\n!.gitignore\n!public' > /winter/storage/temp/.gitignore
+    echo $'*.sqlite\n/tests\n/dusk\n/debugbar' > /winter/storage/.gitignore
+fi
+
 # Run Composer update if COMPOSER_UPDATE is set to true or 1
 DO_COMPOSER_UPDATE=$(env_var_or_file "COMPOSER_UPDATE")
 if [ "$DO_COMPOSER_UPDATE" = "true" ] || [ "$DO_COMPOSER_UPDATE" = "1" ]; then
@@ -23,12 +57,12 @@ if [ "$DO_COMPOSER_UPDATE" = "true" ] || [ "$DO_COMPOSER_UPDATE" = "1" ]; then
     composer update --no-progress --no-interaction --no-suggest --no-audit
 fi
 
-# Set up admin password
-DO_ADMIN_PASSWORD=$(env_var_or_file "ADMIN_PASSWORD")
-if [ -n "$DO_ADMIN_PASSWORD" ]; then
-    echo "Setting up Winter admin user..."
-    php artisan winter:passwd admin $DO_ADMIN_PASSWORD
-fi\
+# Create database if using the default SQLite database
+if [ "$DB_CONNECTION" = "sqlite" ] && [ "$DB_DATABASE" = "/winter/storage/database.sqlite" ] && [ ! -f /winter/storage/database.sqlite ]; then
+    echo "Setting up SQLite database..."
+    touch "$DB_DATABASE"
+    export RUN_MIGRATIONS="true"
+fi
 
 # Configuration changes and allow environment variables to be specified by "_FILE" secrets
 if [ -n "$(env_var_or_file "APP_KEY")" ]; then
@@ -145,12 +179,32 @@ fi
 if [ -n "$(env_var_or_file "ACTIVE_THEME")" ]; then
     SRC="'activeTheme' => 'demo',"
     DEST="'activeTheme' => '${ACTIVE_THEME}',"
-    sed -i "s/${SRC}/${DEST}/g" /winter/config/cms.php
+    sed -i "s/${SRC}/${DEST}/g" /winter/config/cms.php || true
 fi
 if [ -n "$(env_var_or_file "BACKEND_URI")" ]; then
     SRC="'backendUri' => 'backend',"
     DEST="'backendUri' => '${BACKEND_URI}',"
-    sed -i "s/${SRC}/${DEST}/g" /winter/config/cms.php
+    sed -i "s/${SRC}/${DEST}/g" /winter/config/cms.php || true
+fi
+
+# Create application key if not already set
+if [ -z "$APP_KEY" ]; then
+    echo "Generating application key..."
+    php artisan key:generate
+fi
+
+# Run migrations if RUN_MIGRATIONS is set to true or 1
+DO_RUN_MIGRATIONS=$(env_var_or_file "RUN_MIGRATIONS")
+if [ "$DO_RUN_MIGRATIONS" = "true" ] || [ "$DO_RUN_MIGRATIONS" = "1" ]; then
+    echo "Running database migrations..."
+    php artisan migrate
+fi
+
+# Set up admin password (ignoring errors if the user doesn't exist)
+DO_ADMIN_PASSWORD=$(env_var_or_file "ADMIN_PASSWORD")
+if [ -n "$DO_ADMIN_PASSWORD" ]; then
+    echo "Setting Winter admin password..."
+    php artisan winter:passwd admin $DO_ADMIN_PASSWORD || true
 fi
 
 # Run Artisan command if requested
@@ -174,6 +228,9 @@ if [ "$1" = "artisan" ]; then
         set -- php artisan "$@"
     fi
 fi
+
+# Run "winter:mirror" on startup to pickup any plugins and themes mounted
+php artisan winter:mirror public --relative
 
 # first arg is `-f` or `--some-option`
 if [ "${1#-}" != "$1" ]; then
