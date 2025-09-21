@@ -16,7 +16,7 @@ RUN \
     && rm /tmp/packages-microsoft-prod.deb \
     && mkdir -p /opt/microsoft/msodbcsql18/ \
     && touch /opt/microsoft/msodbcsql18/ACCEPT_EULA \
-    && apt update \
+    && apt-get update \
     # Install PHP extensions
     && install-php-extensions \
         gd \
@@ -29,14 +29,14 @@ RUN \
         redis \
         zip \
     # Install additional software for Composer
-    && apt update \
-    && apt install -y \
+    && apt-get update \
+    && apt-get install -y \
         git \
         unzip \
         tar \
         wget \
     # Clean up
-    && apt clean \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
@@ -58,7 +58,7 @@ COPY config/php.ini /usr/local/etc/php/conf.d/winter.ini
 
 # Switch to user
 USER ${USER}
-RUN composer create-project --no-progress --no-interaction --no-scripts wintercms/winter /winter ${WINTER_VERSION}
+RUN composer create-project --no-progress --no-interaction --no-scripts --no-dev wintercms/winter /winter ${WINTER_VERSION}
 
 # Install Node for Mix/Vite support
 ARG NODE_VERSION="v24.8.0"

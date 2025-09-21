@@ -77,5 +77,6 @@ Variable | Description
 `ACTIVE_THEME` | Sets the default active theme in Winter. Useful if you are providing your themes through a mounted volume. Defaults to the included `demo` theme.
 `BACKEND_URI` | Defines the subdirectory in which the Backend can be reached. Defaults to the standard `backend` subdirectory.
 `COMPOSER_UPDATE` | Set to `1` or `true` to run the `composer update` command on booting this image.
+`COMPOSER_DEV` | If `COMPOSER_UPDATE` is used, this will also include "dev" dependencies if this is set to `1` or `true`.
 `RUN_MIGRATIONS` | Set to `1` or `true` to run the `php artisan migrate` command on booting this image. This will automatically be run if using the default SQLite database and the database does not currently exist.
 `ADMIN_PASSWORD` | If set, the `admin` user in the Backend that is automatically created on migration will have its password set to the one specified in this environment variable.

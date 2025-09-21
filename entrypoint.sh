@@ -52,9 +52,14 @@ fi
 
 # Run Composer update if COMPOSER_UPDATE is set to true or 1
 DO_COMPOSER_UPDATE=$(env_var_or_file "COMPOSER_UPDATE")
+DO_COMPOSER_DEV=$(env_var_or_file "COMPOSER_DEV")
 if [ "$DO_COMPOSER_UPDATE" = "true" ] || [ "$DO_COMPOSER_UPDATE" = "1" ]; then
     echo "Running composer update..."
-    composer update --no-progress --no-interaction --no-suggest --no-audit
+    if [ "$DO_COMPOSER_DEV" = "true" ] || [ "$DO_COMPOSER_DEV" = "1" ]; then
+        composer update --no-progress --no-interaction --no-suggest --no-audit
+    else
+        composer update --no-progress --no-interaction --no-suggest --no-audit --no-dev
+    fi
 fi
 
 # Create database if using the default SQLite database
