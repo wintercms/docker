@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: winter
+  IMAGE_NAME: wintercms/winter
 
 jobs:
   publish-docker-image:
