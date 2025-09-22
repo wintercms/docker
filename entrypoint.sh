@@ -193,9 +193,9 @@ if [ -n "$(env_var_or_file "BACKEND_URI")" ]; then
 fi
 
 # Create application key if not already set
-if [ -z "$APP_KEY" ]; then
+if [ -z "$APP_KEY" ] && [ ! -f /winter/.env ]; then
     echo "Generating application key..."
-    php artisan key:generate
+    php artisan key:generate --force
 fi
 
 # Run migrations if RUN_MIGRATIONS is set to true or 1
