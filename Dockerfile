@@ -1,6 +1,6 @@
-ARG FRANKENPHP_VERSION="1.9"
-ARG PHP_VERSION="8.4"
-ARG WINTER_VERSION="v1.2.8"
+ARG FRANKENPHP_VERSION="1.11.1"
+ARG PHP_VERSION="8.4.16"
+ARG WINTER_VERSION="v1.2.9"
 
 FROM dunglas/frankenphp:${FRANKENPHP_VERSION}-php${PHP_VERSION}-trixie
 LABEL org.opencontainers.image.title="Winter CMS"
@@ -19,22 +19,22 @@ RUN \
     && apt-get update \
     # Install PHP extensions
     && install-php-extensions \
-        gd \
-        intl \
-        memcached \
-        pdo_mysql \
-        pdo_pgsql \
-        pdo_sqlsrv \
-        pdo_odbc \
-        redis \
-        zip \
+    gd \
+    intl \
+    memcached \
+    pdo_mysql \
+    pdo_pgsql \
+    pdo_sqlsrv \
+    pdo_odbc \
+    redis \
+    zip \
     # Install additional software for Composer
     && apt-get update \
     && apt-get install -y \
-        git \
-        unzip \
-        tar \
-        wget \
+    git \
+    unzip \
+    tar \
+    wget \
     # Clean up
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -61,7 +61,7 @@ USER ${USER}
 RUN composer create-project --no-progress --no-interaction --no-scripts --no-dev wintercms/winter /winter ${WINTER_VERSION}
 
 # Install Node for Mix/Vite support
-ARG NODE_VERSION="v24.8.0"
+ARG NODE_VERSION="v24.12.0"
 ENV BASH_ENV=/home/${USER}/.bash_env
 ENV XDG_CONFIG_HOME=/home/${USER}/.config
 ENV NVM_DIR=/home/${USER}/.config/nvm
