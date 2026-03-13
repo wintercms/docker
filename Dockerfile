@@ -1,6 +1,6 @@
-ARG FRANKENPHP_VERSION="1.11.1"
-ARG PHP_VERSION="8.4.17"
-ARG WINTER_VERSION="v1.2.10"
+ARG FRANKENPHP_VERSION="1.12.1"
+ARG PHP_VERSION="8.4.19"
+ARG WINTER_VERSION="v1.2.11"
 
 FROM dunglas/frankenphp:${FRANKENPHP_VERSION}-php${PHP_VERSION}-trixie
 LABEL org.opencontainers.image.title="Winter CMS"
@@ -61,7 +61,7 @@ USER ${USER}
 RUN composer create-project --no-progress --no-interaction --no-scripts --no-dev wintercms/winter /winter ${WINTER_VERSION}
 
 # Install Node for Mix/Vite support
-ARG NODE_VERSION="v24.13.0"
+ARG NODE_VERSION="v24.14.0"
 ENV BASH_ENV=/home/${USER}/.bash_env
 ENV XDG_CONFIG_HOME=/home/${USER}/.config
 ENV NVM_DIR=/home/${USER}/.config/nvm
