@@ -59,7 +59,7 @@ COPY config/php.ini /usr/local/etc/php/conf.d/winter.ini
 USER ${WINTER_USER}
 
 # Re-declare in this stage - args before the first FROM are only available to FROM
-ARG WINTER_VERSION="v1.2.12"
+ARG WINTER_VERSION="v1.2.13"
 RUN composer create-project \
   --no-progress \
   --no-interaction \
