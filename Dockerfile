@@ -65,6 +65,7 @@ RUN composer create-project \
   --no-interaction \
   --no-scripts \
   --no-dev \
+  --no-blocking \
   --require winter/storm:${WINTER_VERSION} \
   --require winter/wn-system-module:${WINTER_VERSION} \
   --require winter/wn-backend-module:${WINTER_VERSION} \
