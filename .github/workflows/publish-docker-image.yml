@@ -4,6 +4,28 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Image version to tag (e.g. 1.2.14). Re-uses existing tags if already published."
+        required: true
+        type: string
+      frankenphp_version:
+        description: "FrankenPHP version (leave blank for Dockerfile default)"
+        required: false
+        type: string
+      php_version:
+        description: "PHP version (leave blank for Dockerfile default)"
+        required: false
+        type: string
+      node_version:
+        description: "Node version (leave blank for Dockerfile default)"
+        required: false
+        type: string
+      winter_version:
+        description: "Winter version (leave blank for Dockerfile default)"
+        required: false
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -40,8 +62,36 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
             ${{ env.IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}},value=${{ inputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
+
+      - name: Determine build arguments
+        id: build-args
+        env:
+          FRANKENPHP_VERSION: ${{ inputs.frankenphp_version }}
+          PHP_VERSION: ${{ inputs.php_version }}
+          NODE_VERSION: ${{ inputs.node_version }}
+          WINTER_VERSION: ${{ inputs.winter_version }}
+        run: |
+          for arg in NODE_VERSION WINTER_VERSION; do
+            if [ -n "${!arg}" ] && [[ "${!arg}" != v* ]]; then
+              printf -v "$arg" 'v%s' "${!arg}"
+            fi
+          done
+
+          for arg in FRANKENPHP_VERSION PHP_VERSION; do
+            printf -v "$arg" '%s' "${!arg#v}"
+          done
+
+          {
+            echo "args<<EOF"
+            for arg in FRANKENPHP_VERSION PHP_VERSION NODE_VERSION WINTER_VERSION; do
+              if [ -n "${!arg}" ]; then
+                echo "${arg}=${!arg}"
+              fi
+            done
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
@@ -50,3 +100,4 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ steps.build-args.outputs.args }}
