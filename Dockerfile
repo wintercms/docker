@@ -1,4 +1,4 @@
-ARG FRANKENPHP_VERSION="1.13.2"
+ARG FRANKENPHP_VERSION="1.13.4"
 ARG PHP_VERSION="8.5.12"
 
 FROM dunglas/frankenphp:${FRANKENPHP_VERSION}-php${PHP_VERSION}-trixie
@@ -59,7 +59,7 @@ COPY config/php.ini /usr/local/etc/php/conf.d/winter.ini
 USER ${WINTER_USER}
 
 # Re-declare in this stage - args before the first FROM are only available to FROM
-ARG WINTER_VERSION="v1.2.14"
+ARG WINTER_VERSION="v1.2.15"
 RUN composer create-project \
   --no-progress \
   --no-interaction \
@@ -73,7 +73,7 @@ RUN composer create-project \
   wintercms/winter /winter ${WINTER_VERSION}
 
 # Install Node for Mix/Vite support
-ARG NODE_VERSION="v24.22.1"
+ARG NODE_VERSION="v24.22.2"
 ENV BASH_ENV=/home/${WINTER_USER}/.bash_env
 ENV XDG_CONFIG_HOME=/home/${WINTER_USER}/.config
 ENV NVM_DIR=/home/${WINTER_USER}/.config/nvm
